@@ -17,22 +17,40 @@ export async function removeBackground(file) {
   form.append('file', file);
   console.time("[rembg] total");
   console.time("[rembg] fetch");
-  const res = await fetch(REMBG_URL, { method: 'POST', body: form });
-  console.timeEnd("[rembg] fetch");
-  if (!res.ok) {
-    const errText = await res.text().catch(() => "");
-    console.error("[rembg] http error", res.status, errText);
-    throw new Error(`rembg failed: ${res.status} ${errText}`);
+
+  // Longer timeout for cold starts (90 seconds)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 90000);
+
+  try {
+    const res = await fetch(REMBG_URL, {
+      method: 'POST',
+      body: form,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    console.timeEnd("[rembg] fetch");
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      console.error("[rembg] http error", res.status, errText);
+      throw new Error(`rembg failed: ${res.status} ${errText}`);
+    }
+    const imageId = res.headers.get('x-image-id') || null;
+    const ctype = res.headers.get('content-type') || '';
+    if (!ctype.includes('image/')) {
+      const msg = await res.text().catch(() => "");
+      console.error("[rembg] non-image response", { contentType: ctype, body: msg });
+      throw new Error(`rembg returned non-image: ${ctype} ${msg}`);
+    }
+    const blob = await res.blob();
+    console.log("[rembg] blob", { type: blob.type, size: blob.size, imageId });
+    console.timeEnd("[rembg] total");
+    return { blob, url: URL.createObjectURL(blob), imageId };
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Request timed out - Modal service may be cold starting (try again in a moment)');
+    }
+    throw error;
   }
-  const imageId = res.headers.get('x-image-id') || null;
-  const ctype = res.headers.get('content-type') || '';
-  if (!ctype.includes('image/')) {
-    const msg = await res.text().catch(() => "");
-    console.error("[rembg] non-image response", { contentType: ctype, body: msg });
-    throw new Error(`rembg returned non-image: ${ctype} ${msg}`);
-  }
-  const blob = await res.blob();
-  console.log("[rembg] blob", { type: blob.type, size: blob.size, imageId });
-  console.timeEnd("[rembg] total");
-  return { blob, url: URL.createObjectURL(blob), imageId };
 }
