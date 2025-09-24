@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Day</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="header">
+      <button class="back" onclick="history.back()">‹ Back</button>
+      <div class="title" id="dayTitle"></div>
+    </header>
+    <main class="canvas" id="canvas"></main>
+
+    <button class="fab" id="fab">+</button>
+
+    <div class="sheet" id="sheet">
+      <div class="row">
+        <button id="btnCamera">Take photo</button>
+        <button id="btnGallery">Upload from gallery</button>
+      </div>
+    </div>
+
+    <div class="badge" id="badge">Processing…</div>
+
+    <input type="file" accept="image/*" capture="environment" id="inputCamera" hidden>
+    <input type="file" accept="image/*" id="inputGallery" hidden>
+
+    <script type="module" src="./util.js"></script>
+    <script type="module" src="./db.js"></script>
+    <script type="module" src="./config.js"></script>
+    <script type="module" src="./rembg.js"></script>
+    <script type="module" src="./day.js"></script>
+  </body>
+</html>
